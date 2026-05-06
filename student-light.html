@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0'>
+<meta name="theme-color" content="#fdf7f2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Student Planner">
+<link rel="manifest" href="manifest-student-light.json">
+<link rel="apple-touch-icon" href="icon-student-light.png">
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw-student-light.js').catch(e=>{})})}
+</script>
+<title>🎓 ADHD Student Planner</title>
+<link rel='preconnect' href='https://fonts.googleapis.com'>
+<link href='https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap' rel='stylesheet'>
+<style>
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fdf7f2;--surface:#ffffff;--surface2:#fef3ec;
+  --pink:#c85f76;--teal:#4e9985;--yellow:#d4922a;
+  --purple:#7b5ea8;--text:#2c1f1f;--muted:#9e8585;
+  --border:rgba(0,0,0,0.08);
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden}
+.orb{position:fixed;border-radius:50%;filter:blur(90px);opacity:0.18;pointer-events:none;z-index:0}
+.orb1{background:#e8b4c0;top:-140px;right:-140px;width:380px;height:380px}.orb2{background:#a8d5c8;bottom:100px;left:-110px;width:280px;height:280px}.orb3{background:#deb887;top:50%;right:-80px;width:200px;height:200px}
+.header{position:sticky;top:0;z-index:100;background:rgba(253,247,242,0.95);backdrop-filter:blur(24px);border-bottom:1px solid var(--border);padding:16px 20px}
+.header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.app-title{font-family:'Fredoka One',cursive;font-size:20px;color:var(--pink)}
+.app-sub{font-size:10px;font-weight:800;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
+.tabs{display:flex;gap:5px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab-btn{flex-shrink:0;border:2px solid transparent;border-radius:12px;padding:8px 12px;font-family:'Nunito',sans-serif;font-weight:800;font-size:11px;cursor:pointer;transition:all 0.2s;outline:none;white-space:nowrap}
+.tab-btn.active{background:rgba(123,94,168,0.12);color:#7b5ea8;border-color:rgba(123,94,168,0.35)}
+.tab-btn:not(.active){background:rgba(0,0,0,0.04);color:#9e8585}
+.main{padding:0 0 100px;position:relative;z-index:1}
+.panel{padding:14px 20px;display:none}
+.panel.active{display:block}
+.section-label{font-size:11px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.card{background:#ffffff;border:1.5px solid rgba(0,0,0,0.08);border-radius:18px;padding:14px 16px;margin-bottom:10px;transition:all 0.2s}
+.card-sm{background:#ffffff;border:1.5px solid rgba(0,0,0,0.08);border-radius:14px;padding:12px 14px;margin-bottom:8px;transition:all 0.2s}
+input,select,textarea{font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;outline:none;transition:border-color 0.2s;color:var(--text);background:#fdf7f2;border:1.5px solid rgba(0,0,0,0.08);border-radius:12px;padding:10px 13px;width:100%}
+input:focus,select:focus,textarea:focus{border-color:rgba(123,94,168,0.45)}
+input::placeholder,textarea::placeholder{color:var(--muted);font-weight:600}
+select{cursor:pointer}
+.field-label{font-size:10px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px}
+.field-row{margin-bottom:12px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.btn-primary{width:100%;padding:13px;border-radius:14px;border:none;color:white;font-family:'Nunito',sans-serif;font-weight:900;font-size:15px;cursor:pointer;transition:all 0.2s;background:linear-gradient(135deg,#7b5ea8,#c85f76)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(123,94,168,0.25)}
+.btn-primary:active{transform:scale(0.98)}
+.chip{border-radius:100px;padding:5px 13px;font-size:11px;font-weight:800;cursor:pointer;transition:all 0.15s;outline:none;border:1.5px solid rgba(0,0,0,0.08);background:#fdf7f2;color:#9e8585}
+.chip.sel{background:rgba(123,94,168,0.12);border-color:#7b5ea8;color:#7b5ea8}
+.chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.del-btn{background:rgba(200,95,118,0.08);border:none;color:#c85f76;border-radius:8px;padding:5px 9px;font-size:12px;cursor:pointer;flex-shrink:0;transition:all 0.2s;outline:none;opacity:0}
+.card:hover .del-btn,.card-sm:hover .del-btn{opacity:1}
+.task-card .del-btn{opacity:1}
+.del-btn:hover{background:rgba(200,95,118,0.18)}
+/* AFFIRM */
+.affirm-wrap{padding:14px 20px 0}
+.affirm-card{background:#fef3ec;border:1.5px solid rgba(200,95,118,0.18);border-radius:18px;padding:14px 18px;display:flex;align-items:center;gap:12px;animation:affirmFade 0.6s ease}
+@keyframes affirmFade{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+.affirm-icon{font-size:26px;flex-shrink:0}
+.affirm-text{flex:1}
+.affirm-quote{font-size:13px;font-weight:800;color:var(--text);line-height:1.4}
+.affirm-hint{font-size:10px;font-weight:700;color:var(--muted);margin-top:3px}
+.affirm-btn{background:rgba(199,125,255,0.12);border:1.5px solid rgba(199,125,255,0.25);color:var(--purple);border-radius:10px;padding:6px 10px;font-size:16px;cursor:pointer;flex-shrink:0;outline:none;font-family:'Nunito',sans-serif;line-height:1}
+.affirm-btn.spin{animation:spin 0.4s ease}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+/* ENERGY */
+.energy-wrap{padding:12px 20px 0}
+.energy-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.energy-btn{border:2px solid transparent;border-radius:16px;padding:12px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font-family:'Nunito',sans-serif;font-weight:800;transition:all 0.2s;outline:none}
+.energy-btn:active{transform:scale(0.95)}
+.energy-icon{font-size:22px;line-height:1}
+.energy-label{font-size:12px}
+.energy-sub{font-size:9px;font-weight:700;opacity:0.65}
+.energy-btn.low{background:rgba(78,153,133,0.08);color:#4e9985;border-color:rgba(78,153,133,0.15)}
+.energy-btn.low.active{background:rgba(78,153,133,0.16);border-color:#4e9985;box-shadow:0 0 20px rgba(78,153,133,0.2)}
+.energy-btn.medium{background:rgba(123,94,168,0.08);color:#7b5ea8;border-color:rgba(123,94,168,0.15)}
+.energy-btn.medium.active{background:rgba(123,94,168,0.16);border-color:#7b5ea8;box-shadow:0 0 20px rgba(123,94,168,0.2)}
+.energy-btn.high{background:rgba(200,95,118,0.08);color:#c85f76;border-color:rgba(200,95,118,0.15)}
+.energy-btn.high.active{background:rgba(200,95,118,0.16);border-color:#c85f76;box-shadow:0 0 20px rgba(200,95,118,0.2)}
+.mvd-banner{margin:10px 20px 0;padding:10px 14px;background:rgba(78,153,133,0.07);border:1.5px solid rgba(78,153,133,0.25);border-radius:12px;font-size:12px;font-weight:700;color:var(--teal);text-align:center;display:none}
+.mvd-banner.show{display:block}
+/* TASK CARDS */
+.task-card{background:#ffffff;border:1.5px solid rgba(0,0,0,0.08);border-radius:16px;padding:13px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all 0.2s;user-select:none;margin-bottom:8px}
+.task-card:not(.done):hover{border-color:rgba(123,94,168,0.3);background:#fef3ec;transform:translateY(-1px)}
+.task-card.done{opacity:0.45}
+.task-card.completing{animation:taskPop 0.3s cubic-bezier(0.34,1.56,0.64,1)}
+@keyframes taskPop{0%{transform:scale(1)}50%{transform:scale(1.03)}100%{transform:scale(1)}}
+.t-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.t-icon.low{background:rgba(0,229,200,0.14)}
+.t-icon.medium{background:rgba(199,125,255,0.14)}
+.t-icon.high{background:rgba(255,110,180,0.14)}
+.t-info{flex:1;min-width:0}
+.t-name{font-size:14px;font-weight:800;color:var(--text);line-height:1.3}
+.task-card.done .t-name{text-decoration:line-through;color:var(--muted)}
+.t-meta{font-size:10px;font-weight:700;color:var(--muted);margin-top:2px}
+.t-check{font-size:18px;color:var(--teal);flex-shrink:0}
+.freq-badge{border-radius:5px;font-size:8px;font-weight:900;padding:1px 5px;letter-spacing:0.5px;vertical-align:middle;margin-left:4px}
+.freq-badge.weekly{background:rgba(0,229,200,0.15);color:var(--teal);border:1px solid rgba(0,229,200,0.3)}
+.freq-badge.monthly{background:rgba(255,209,102,0.15);color:var(--yellow);border:1px solid rgba(255,209,102,0.3)}
+.reset-badge{border-radius:8px;padding:3px 8px;font-size:11px;font-weight:900;white-space:nowrap;flex-shrink:0;background:rgba(0,229,200,0.12);color:var(--teal);border:1px solid rgba(0,229,200,0.25)}
+.cat-header{font-size:10px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:8px 2px 4px}
+/* PROGRESS BAR */
+.prog-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.prog-track{flex:1;height:8px;background:rgba(0,0,0,0.06);border-radius:100px;overflow:hidden}
+.prog-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,#7b5ea8,#c85f76);transition:width 0.6s cubic-bezier(0.34,1.56,0.64,1)}
+.prog-label{font-size:12px;font-weight:900;color:var(--purple);white-space:nowrap}
+/* SCHEDULE */
+.sched-day{margin-bottom:14px}
+.sched-day-header{display:flex;align-items:center;justify-content:space-between;background:rgba(123,94,168,0.06);border:1.5px solid rgba(123,94,168,0.18);border-radius:12px;padding:9px 14px;cursor:pointer;margin-bottom:6px}
+.sched-day-name{font-size:13px;font-weight:900;color:#7b5ea8}
+.sched-day-count{font-size:11px;font-weight:700;color:var(--muted)}
+.sched-class{background:rgba(123,94,168,0.05);border:1.5px solid rgba(123,94,168,0.15);border-radius:12px;padding:11px 13px;margin-bottom:6px;display:flex;align-items:center;gap:10px}
+.sched-time{font-size:11px;font-weight:900;color:var(--purple);white-space:nowrap;min-width:50px}
+.sched-info{flex:1}
+.sched-name{font-size:13px;font-weight:800;color:var(--text)}
+.sched-loc{font-size:10px;font-weight:700;color:var(--muted)}
+.sched-color-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+/* PROJECTS */
+.proj-card{background:#ffffff;border:1.5px solid rgba(0,0,0,0.08);border-radius:16px;padding:14px;margin-bottom:10px}
+.proj-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.proj-name{font-size:14px;font-weight:900;color:var(--text);flex:1}
+.proj-subject{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.proj-due{font-size:11px;font-weight:900;border-radius:6px;padding:2px 8px;white-space:nowrap}
+.due-overdue{background:rgba(255,110,110,0.18);color:#ff7070}
+.due-today{background:rgba(255,110,180,0.18);color:var(--pink)}
+.due-soon{background:rgba(255,209,102,0.18);color:var(--yellow)}
+.due-ok{background:rgba(0,229,200,0.12);color:var(--teal)}
+.due-done{background:rgba(0,229,200,0.1);color:var(--teal)}
+.proj-progress-wrap{margin-bottom:10px}
+.proj-progress-track{height:6px;background:rgba(0,0,0,0.06);border-radius:100px;overflow:hidden}
+.proj-progress-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,#7b5ea8,#c85f76);transition:width 0.4s}
+.proj-progress-label{font-size:10px;font-weight:800;color:var(--muted);margin-bottom:4px;display:flex;justify-content:space-between}
+.status-row{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.status-btn{border-radius:8px;padding:4px 10px;font-family:'Nunito',sans-serif;font-weight:800;font-size:10px;cursor:pointer;outline:none;transition:all 0.15s;border:1px solid rgba(0,0,0,0.08);background:#fdf7f2;color:var(--muted)}
+.status-btn.active{background:rgba(199,125,255,0.2);color:var(--purple);border-color:var(--purple)}
+.status-btn.done-active{background:rgba(0,229,200,0.15);color:var(--teal);border-color:var(--teal)}
+.prio-bar{width:4px;border-radius:4px;flex-shrink:0;align-self:stretch}
+.prio-high .prio-bar{background:#c85f76}
+.prio-medium .prio-bar{background:#d4922a}
+.prio-low .prio-bar{background:#4e9985}
+/* ATTENDANCE */
+.att-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+.att-stat{border-radius:14px;padding:12px;text-align:center}
+.att-stat.present{background:rgba(78,153,133,0.1)}
+.att-stat.absent{background:rgba(200,95,118,0.1)}
+.att-stat.late{background:rgba(212,146,42,0.1)}
+.att-num{font-family:'Fredoka One',cursive;font-size:28px}
+.att-stat.present .att-num{color:#4e9985}
+.att-stat.absent .att-num{color:#c85f76}
+.att-stat.late .att-num{color:#d4922a}
+.att-label{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.att-module{background:#ffffff;border:1.5px solid rgba(0,0,0,0.08);border-radius:16px;padding:13px 14px;margin-bottom:10px}
+.att-module-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.att-module-name{font-size:13px;font-weight:900;color:var(--text)}
+.att-pct{font-family:'Fredoka One',cursive;font-size:20px;color:var(--purple)}
+.att-track{height:6px;background:rgba(0,0,0,0.06);border-radius:100px;overflow:hidden;margin-bottom:10px}
+.att-fill{height:100%;border-radius:100px;transition:width 0.4s}
+.att-buttons{display:flex;gap:6px}
+.att-btn{flex:1;padding:6px;border-radius:8px;font-family:'Nunito',sans-serif;font-weight:900;font-size:11px;cursor:pointer;outline:none;border:none;transition:all 0.2s;color:white}
+.att-btn.p{background:#4e9985}
+.att-btn.a{background:#c85f76}
+.att-btn.l{background:#d4922a}
+.att-btn:active{transform:scale(0.95)}
+.att-warning{font-size:11px;font-weight:800;color:#c85f76;margin-top:6px}
+/* GRADES */
+.gpa-card{border-radius:20px;padding:18px 20px;margin-bottom:14px;background:#ffffff;border:1.5px solid rgba(0,0,0,0.08);display:flex;align-items:center;gap:16px}
+.gpa-big{font-family:'Fredoka One',cursive;font-size:52px;line-height:1;color:var(--purple)}
+.gpa-info{flex:1}
+.gpa-label{font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px}
+.gpa-sub{font-size:13px;font-weight:800;color:var(--text);margin-top:4px}
+.grade-card{background:#ffffff;border:1.5px solid rgba(0,0,0,0.08);border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.grade-badge{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Fredoka One',cursive;font-size:18px;flex-shrink:0}
+.grade-A{background:rgba(78,153,133,0.12);color:#4e9985}
+.grade-B{background:rgba(123,94,168,0.12);color:#7b5ea8}
+.grade-C{background:rgba(212,146,42,0.12);color:#d4922a}
+.grade-F{background:rgba(200,95,118,0.12);color:#c85f76}
+.grade-info{flex:1}
+.grade-module{font-size:14px;font-weight:800;color:var(--text)}
+.grade-pct{font-size:11px;font-weight:700;color:var(--muted)}
+/* SOS */
+.em-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.em-card{border:none;border-radius:18px;padding:18px 14px 16px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:5px;font-family:'Nunito',sans-serif;text-align:left;transition:all 0.2s;outline:none}
+.em-card:active{transform:scale(0.95)}
+.em-card.done{opacity:0.45}
+.em-icon{font-size:30px;line-height:1;margin-bottom:2px}
+.em-name{font-size:14px;font-weight:900;line-height:1.2}
+.em-time{font-size:10px;font-weight:700;opacity:0.75}
+.sos-hint{background:rgba(0,0,0,0.02);border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13px;font-weight:700;color:var(--muted);line-height:1.5}
+.sos-hint strong{color:var(--text)}
+/* TOAST */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:#ffffff;border:1.5px solid rgba(0,0,0,0.08);border-radius:100px;padding:10px 20px;font-size:13px;font-weight:800;color:var(--text);z-index:300;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),opacity 0.3s;opacity:0;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.12)}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+/* MISC */
+.empty-state{text-align:center;padding:36px 20px}
+.empty-icon{font-size:44px;margin-bottom:10px}
+.empty-msg{font-size:15px;font-weight:800;color:var(--muted)}
+.empty-sub{font-size:12px;color:var(--muted);margin-top:6px;opacity:0.8}
+.footer-pad{height:40px}
+.new-day-btn{background:rgba(0,229,200,0.1);border:1.5px solid rgba(0,229,200,0.3);color:var(--teal);border-radius:10px;padding:5px 12px;font-family:'Nunito',sans-serif;font-weight:800;font-size:11px;cursor:pointer;outline:none}
+/* CELEBRATION */
+@keyframes celebEmojiPop{0%{transform:scale(0) rotate(-20deg)}60%{transform:scale(1.25) rotate(8deg)}80%{transform:scale(0.9) rotate(-4deg)}100%{transform:scale(1) rotate(0deg)}}
+@keyframes celebFlash{0%{opacity:0}30%{opacity:1}100%{opacity:0}}
+.celeb-flash{position:fixed;inset:0;z-index:899;pointer-events:none;background:radial-gradient(ellipse at center,rgba(123,94,168,0.12) 0%,transparent 70%);animation:celebFlash 0.6s ease-out forwards;}
+.celeb-emoji-anim{animation:celebEmojiPop 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.1s both;}
+@keyframes streakIn{from{transform:translateY(-10px);opacity:0}to{transform:translateY(0);opacity:1}}
+.celeb-sub-anim{animation:streakIn 0.3s ease 0.3s both;}
+.celeb-task-anim{animation:streakIn 0.3s ease 0.45s both;}
+
+</style>
+</head>
+<body>
+
+<div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
+<div class="toast" id="toast"></div>
+
+<header class="header">
+  <div class="header-top">
+    <div>
+      <div class="app-title">🎓 ADHD Student Planner</div>
+      <div class="app-sub">Your brain, your pace</div>
+    </div>
+    <button class="new-day-btn" onclick="newDay()">🌙 New Day</button>
+  </div>
+  <div class="tabs" id="tabBar">
+    <button class="tab-btn active" onclick="switchTab('today')">✅ Today</button>
+    <button class="tab-btn" onclick="switchTab('schedule')">🗓️ Schedule</button>
+    <button class="tab-btn" onclick="switchTab('projects')">📋 Projects</button>
+    <button class="tab-btn" onclick="switchTab('attendance')">📍 Attendance</button>
+    <button class="tab-btn" onclick="switchTab('grades')">📊 Grades</button>
+    <button class="tab-btn" onclick="switchTab('sos')">🚨 SOS</button>
+  </div>
+</header>
+
+<main class="main">
+
+<!-- TODAY -->
+<div class="panel active" id="panel-today">
+  <div class="affirm-wrap" style="padding:14px 0 0">
+    <div class="affirm-card">
+      <div class="affirm-icon" id="affirmIcon">💜</div>
+      <div class="affirm-text">
+        <div class="affirm-quote" id="affirmQuote">You are doing better than you think.</div>
+        <div class="affirm-hint">Tap ↻ for a new one</div>
+      </div>
+      <button class="affirm-btn" id="affirmBtn" onclick="nextAffirmation()">↻</button>
+    </div>
+  </div>
+  <div class="energy-wrap">
+    <div class="section-label" style="margin-bottom:8px">🔋 Right now I am in...</div>
+    <div class="energy-grid">
+      <button class="energy-btn low" id="btnLow" onclick="setEnergy('low')">
+        <span class="energy-icon">🪫</span><span class="energy-label">Survival</span><span class="energy-sub">Just get through it</span>
+      </button>
+      <button class="energy-btn medium active" id="btnMedium" onclick="setEnergy('medium')">
+        <span class="energy-icon">⚡</span><span class="energy-label">Focus</span><span class="energy-sub">Regular study</span>
+      </button>
+      <button class="energy-btn high" id="btnHigh" onclick="setEnergy('high')">
+        <span class="energy-icon">🔥</span><span class="energy-label">Deep Work</span><span class="energy-sub">Tackle the hard stuff</span>
+      </button>
+    </div>
+    <div class="mvd-banner" id="mvdBanner">🌿 Survival Mode — show up, take meds, drink water. That is already a win.</div>
+  </div>
+  <div style="padding:12px 0 4px;display:flex;align-items:center;justify-content:space-between">
+    <div class="section-label" style="margin:0">Today's tasks</div>
+    <div id="todayProgress" style="font-size:12px;font-weight:900;color:var(--purple)">0/0</div>
+  </div>
+  <div class="prog-row" style="margin-bottom:14px"><div class="prog-track"><div class="prog-fill" id="todayProgFill" style="width:0%"></div></div></div>
+  <div id="taskList"></div>
+  <div style="margin-top:6px">
+    <button onclick="toggleCustomBuilder()" style="background:rgba(199,125,255,0.1);border:1.5px dashed rgba(199,125,255,0.35);color:var(--purple);border-radius:12px;padding:10px;width:100%;font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;cursor:pointer;outline:none;">+ Add Custom Task</button>
+    <div id="customBuilder" style="display:none;margin-top:10px;background:var(--surface);border:1.5px solid var(--border);border-radius:18px;padding:16px">
+      <div class="field-row"><div class="field-label">Task name</div><input id="ctaskName" placeholder="e.g. Review lecture slides" oninput="validateCTask()"/></div>
+      <div class="grid-2" style="margin-bottom:12px">
+        <div><div class="field-label">Energy</div><select id="ctaskEnergy"><option value="low">🪫 Survival</option><option value="medium" selected>⚡ Focus</option><option value="high">🔥 Deep Work</option></select></div>
+        <div><div class="field-label">How often</div><select id="ctaskFreq"><option value="daily">☀️ Daily</option><option value="weekly">🔄 Weekly</option><option value="monthly">📅 Monthly</option></select></div>
+      </div>
+      <div class="field-row"><div class="field-label">Category</div>
+        <div class="chip-row" id="ctaskCatRow"></div>
+        <input id="ctaskCatCustom" placeholder="Or type your own..." oninput="onCtaskCat(this.value)" style="margin-top:6px"/>
+      </div>
+      <button class="btn-primary" id="ctaskAddBtn" onclick="addCustomTask()" disabled>+ Add Task</button>
+    </div>
+  </div>
+  <div style="height:8px"></div>
+  <div id="customTaskList"></div>
+</div>
+
+<!-- SCHEDULE -->
+<div class="panel" id="panel-schedule">
+  <div class="section-label">Add a class</div>
+  <div class="card-sm" style="margin-bottom:14px">
+    <div class="field-row"><div class="field-label">Class name</div><input id="scName" placeholder="e.g. Introduction to Psychology"/></div>
+    <div class="grid-2"><div><div class="field-label">Day</div><select id="scDay"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option></select></div><div><div class="field-label">Time</div><input id="scTime" type="time"/></div></div>
+    <div class="field-row" style="margin-top:10px"><div class="field-label">Location (optional)</div><input id="scLoc" placeholder="Room 204 / Online"/></div>
+    <div class="field-row"><div class="field-label">Colour</div><div class="chip-row" id="scColorRow"></div></div>
+    <button class="btn-primary" onclick="addScheduleClass()">+ Add to Schedule</button>
+  </div>
+  <div class="section-label">Weekly schedule</div>
+  <div id="scheduleView"></div>
+</div>
+
+<!-- PROJECTS -->
+<div class="panel" id="panel-projects">
+  <div class="section-label">Add assignment or project</div>
+  <div class="card-sm" style="margin-bottom:14px">
+    <div class="field-row"><div class="field-label">Title</div><input id="prjName" placeholder="e.g. Essay on Climate Change"/></div>
+    <div class="grid-2"><div><div class="field-label">Subject</div><input id="prjSubject" placeholder="e.g. Geography"/></div><div><div class="field-label">Due date</div><input id="prjDue" type="date"/></div></div>
+    <div class="grid-2" style="margin-top:10px"><div><div class="field-label">Priority</div><select id="prjPriority"><option value="high">🔴 High</option><option value="medium" selected>🟡 Medium</option><option value="low">🟢 Low</option></select></div><div><div class="field-label">Progress %</div><input id="prjProgress" type="number" min="0" max="100" value="0" placeholder="0"/></div></div>
+    <button class="btn-primary" style="margin-top:12px" onclick="addProject()">+ Add Project</button>
+  </div>
+  <div id="projectStats" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px"></div>
+  <div class="section-label">Active projects</div>
+  <div id="projectList"></div>
+</div>
+
+<!-- ATTENDANCE -->
+<div class="panel" id="panel-attendance">
+  <div class="section-label">Add a module to track</div>
+  <div class="card-sm" style="margin-bottom:14px">
+    <div class="grid-2"><div><div class="field-label">Module name</div><input id="attName" placeholder="e.g. Biology 101"/></div><div><div class="field-label">Min. attendance %</div><input id="attMin" type="number" min="0" max="100" value="80" placeholder="80"/></div></div>
+    <button class="btn-primary" style="margin-top:10px" onclick="addAttModule()">+ Add Module</button>
+  </div>
+  <div class="att-summary" id="attSummary">
+    <div class="att-stat present"><div class="att-num" id="attTotalPresent">0</div><div class="att-label">Present</div></div>
+    <div class="att-stat absent"><div class="att-num" id="attTotalAbsent">0</div><div class="att-label">Absent</div></div>
+    <div class="att-stat late"><div class="att-num" id="attTotalLate">0</div><div class="att-label">Late</div></div>
+  </div>
+  <div class="section-label">My modules</div>
+  <div id="attList"></div>
+</div>
+
+<!-- GRADES -->
+<div class="panel" id="panel-grades">
+  <div class="gpa-card" id="gpaCard">
+    <div class="gpa-big" id="gpaDisplay">—</div>
+    <div class="gpa-info">
+      <div class="gpa-label">Current GPA</div>
+      <div class="gpa-sub" id="gpaSub">Add grades below to calculate</div>
+    </div>
+  </div>
+  <div class="section-label">Add a grade</div>
+  <div class="card-sm" style="margin-bottom:14px">
+    <div class="field-row"><div class="field-label">Module name</div><input id="grName" placeholder="e.g. Mathematics"/></div>
+    <div class="grid-3"><div><div class="field-label">Score %</div><input id="grScore" type="number" min="0" max="100" placeholder="75"/></div><div><div class="field-label">Credits</div><input id="grCredits" type="number" min="1" max="30" value="3" placeholder="3"/></div><div><div class="field-label">Semester</div><input id="grSemester" placeholder="S1"/></div></div>
+    <button class="btn-primary" style="margin-top:10px" onclick="addGrade()">+ Add Grade</button>
+  </div>
+  <div class="section-label">Grade breakdown</div>
+  <div id="gradeList"></div>
+</div>
+
+<!-- SOS -->
+<div class="panel" id="panel-sos">
+  <div class="sos-hint"><strong>Completely frozen?</strong> Can't even pick? Hit <strong style="color:var(--pink)">Pick for me</strong> and your brain only has to do one thing.</div>
+  <button onclick="pickRandomSOS()" id="pickForMeBtn" style="width:100%;margin-bottom:14px;padding:16px;border-radius:18px;border:none;background:linear-gradient(135deg,var(--pink),var(--purple));color:white;font-family:'Nunito',sans-serif;font-weight:900;font-size:16px;cursor:pointer;transition:all 0.2s;outline:none;">
+    🎲 Pick one for me
+  </button>
+  <div id="randomPickResult" style="display:none;margin-bottom:14px;padding:14px 16px;border-radius:16px;border:2px solid var(--pink);background:rgba(255,110,180,0.08);text-align:center">
+    <div id="randomPickIcon" style="font-size:36px;margin-bottom:6px"></div>
+    <div id="randomPickName" style="font-size:16px;font-weight:900;color:var(--pink)"></div>
+    <div id="randomPickTime" style="font-size:12px;font-weight:700;color:var(--muted);margin-top:3px"></div>
+    <div style="font-size:12px;font-weight:800;color:var(--text);margin-top:8px">Just this. Nothing else. Go.</div>
+  </div>
+  <div class="em-grid" id="emGrid"></div>
+  <div style="margin-top:12px;text-align:center"><button onclick="resetSOS()" style="background:none;border:none;color:var(--muted);font-family:'Nunito',sans-serif;font-weight:700;font-size:12px;cursor:pointer;">Reset SOS buttons</button></div>
+</div>
+
+<div class="footer-pad"></div>
+</main>
+
+<!-- CELEBRATION OVERLAY -->
+<div id="celebOverlay" style="display:none;position:fixed;inset:0;z-index:900;pointer-events:none;">
+  <canvas id="celebCanvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;"></canvas>
+  <div id="celebCard" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(0.5);opacity:0;background:linear-gradient(135deg,#ffffff,#fdf0f5);border:2px solid rgba(123,94,168,0.3);border-radius:28px;padding:28px 36px;text-align:center;min-width:260px;max-width:320px;box-shadow:0 0 60px rgba(123,94,168,0.15),0 20px 60px rgba(0,0,0,0.12);transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1),opacity 0.25s ease;">
+    <div id="celebEmoji" style="font-size:56px;line-height:1;margin-bottom:10px;display:block;"></div>
+    <div id="celebMsg" style="font-family:'Fredoka One',cursive;font-size:26px;color:#2c1f1f;margin-bottom:6px;line-height:1.2;"></div>
+    <div id="celebSub" style="font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#7b5ea8;margin-bottom:14px;line-height:1.4;"></div>
+    <div id="celebTaskName" style="font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:rgba(44,31,31,0.4);text-transform:uppercase;letter-spacing:1.5px;"></div>
+  </div>
+</div>
+
+<div id="installBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;padding:14px 20px 28px;background:var(--surface);border-top:1px solid var(--border)">
+  <div style="display:flex;align-items:flex-start;gap:10px;max-width:500px;margin:0 auto">
+    <span style="font-size:28px;flex-shrink:0">📲</span>
+    <div style="flex:1"><div style="font-weight:900;font-size:14px;color:var(--text);margin-bottom:2px">Add to your Home Screen</div><div style="font-size:11px;color:var(--muted);font-weight:700">Tap <strong style="color:var(--text)">Share</strong> then <strong style="color:var(--text)">"Add to Home Screen"</strong> — works offline after this visit.</div></div>
+    <button onclick="dismissBanner()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer">✕</button>
+  </div>
+</div>
+
+<script>
+
+const AFFIRMATIONS=[
+  {icon:"📚",text:"You don't have to understand everything today. Start with one thing."},
+  {icon:"💜",text:"Your brain works differently — not broken, just different."},
+  {icon:"🌱",text:"Missing one lecture doesn't erase all the ones you attended."},
+  {icon:"⚡",text:"Imperfect notes handed in beat perfect notes never written."},
+  {icon:"🎯",text:"One paragraph written is infinitely more than zero paragraphs."},
+  {icon:"🌿",text:"A messy desk with a functioning student in it is a win."},
+  {icon:"🔥",text:"You've survived every exam season so far. Today is no different."},
+  {icon:"🧠",text:"ADHD also means creativity, hyperfocus, and pattern recognition. Use it."},
+  {icon:"🫶",text:"You are allowed to rest without finishing everything first."},
+  {icon:"✨",text:"Done is better than perfect. Always. Hand it in."},
+  {icon:"🌟",text:"The fact that you opened this today means something. Really."},
+  {icon:"🚀",text:"You don't need motivation to start. Starting creates motivation."},
+  {icon:"💡",text:"Your worth is not measured by your GPA."},
+  {icon:"🌸",text:"Be as kind to yourself as you would be to a struggling classmate."},
+  {icon:"🛋️",text:"Rest is not procrastination. Rest is how your brain consolidates learning."},
+  {icon:"🌈",text:"You are not behind. You are exactly where you are."},
+  {icon:"💎",text:"Hard weeks don't erase the good ones. Keep going."},
+  {icon:"🤍",text:"Forgetting a deadline doesn't make you a bad student. Begin again."},
+  {icon:"🦋",text:"Every small action rewires your brain for the next one."},
+  {icon:"🎮",text:"This is not a race. It's your education, at your pace."},
+  {icon:"🌙",text:"What you did today was enough. Tomorrow can be more."},
+  {icon:"💪",text:"Asking for help is not weakness. It is the smartest study strategy."},
+  {icon:"🧩",text:"You are not the problem. You're doing great."},
+  {icon:"☀️",text:"A new day is a genuine fresh start. Not a metaphor — an actual one."},
+  {icon:"📝",text:"Progress in your studies looks different every day. That's okay."},
+];
+let affirmIndex=0;
+function pickTodayAffirmation(){
+  const d=Math.floor((Date.now()-new Date(new Date().getFullYear(),0,0))/86400000);
+  affirmIndex=d%AFFIRMATIONS.length; showAffirmation(affirmIndex);
+}
+function showAffirmation(i){const a=AFFIRMATIONS[i];document.getElementById("affirmIcon").textContent=a.icon;document.getElementById("affirmQuote").textContent=a.text;}
+function nextAffirmation(){
+  affirmIndex=(affirmIndex+1)%AFFIRMATIONS.length; showAffirmation(affirmIndex);
+  const b=document.getElementById("affirmBtn");b.classList.remove("spin");void b.offsetWidth;b.classList.add("spin");
+  b.addEventListener("animationend",()=>b.classList.remove("spin"),{once:true});
+}
+
+// FREQUENCY
+function todayStr(){return new Date().toISOString().split("T")[0];}
+function daysSince(d){if(!d)return 9999;return Math.floor((Date.now()-new Date(d))/86400000);}
+function isDone(t){
+  if(t.freq==="weekly")  return !!t.lastDone&&daysSince(t.lastDone)<7;
+  if(t.freq==="monthly") return !!t.lastDone&&daysSince(t.lastDone)<30;
+  return !!t.done;
+}
+function daysLeft(t){
+  if(!t.lastDone)return 0;
+  if(t.freq==="weekly")  return Math.max(0,7 -daysSince(t.lastDone));
+  if(t.freq==="monthly") return Math.max(0,30-daysSince(t.lastDone));
+  return 0;
+}
+function freqBadge(freq){
+  if(freq==="weekly")  return '<span class="freq-badge weekly">weekly</span>';
+  if(freq==="monthly") return '<span class="freq-badge monthly">monthly</span>';
+  return "";
+}
+
+// TASK TEMPLATES
+const TASKS=[
+  {id:1,name:"Take medication",                 icon:"💊",energy:"low",   cat:"Self Care",freq:"daily"},
+  {id:2,name:"Drink water before class",         icon:"🥤",energy:"low",   cat:"Self Care",freq:"daily"},
+  {id:3,name:"Check today's schedule",           icon:"🗓️",energy:"low",   cat:"Admin",    freq:"daily"},
+  {id:4,name:"Get dressed and leave the room",   icon:"👕",energy:"low",   cat:"Self Care",freq:"daily"},
+  {id:5,name:"Review yesterday's notes (5 min)", icon:"📖",energy:"low",   cat:"Study",    freq:"daily"},
+  {id:6,name:"Eat something before studying",    icon:"🍎",energy:"low",   cat:"Self Care",freq:"daily"},
+  {id:7,name:"Attend lecture or class",          icon:"🎓",energy:"medium",cat:"Lectures", freq:"daily"},
+  {id:8,name:"Write notes after class",          icon:"✏️",energy:"medium",cat:"Study",    freq:"daily"},
+  {id:9,name:"Check and reply to emails",        icon:"📧",energy:"medium",cat:"Admin",    freq:"daily"},
+  {id:10,name:"Work on an assignment (30 min)",  icon:"💻",energy:"medium",cat:"Study",    freq:"daily"},
+  {id:11,name:"One deep study session (90 min)", icon:"🔥",energy:"high",  cat:"Study",    freq:"daily"},
+  {id:12,name:"Visit library or study space",    icon:"🏛️",energy:"high",  cat:"Study",    freq:"daily"},
+  {id:13,name:"Review all upcoming deadlines",   icon:"⏰",energy:"low",   cat:"Admin",    freq:"weekly"},
+  {id:14,name:"Tidy desk and study space",       icon:"🧹",energy:"low",   cat:"Self Care",freq:"weekly"},
+  {id:15,name:"Do laundry",                      icon:"🧺",energy:"low",   cat:"Self Care",freq:"weekly"},
+  {id:16,name:"Plan the week's study sessions",  icon:"🗂️",energy:"medium",cat:"Admin",    freq:"weekly"},
+  {id:17,name:"Review and organise all notes",   icon:"📋",energy:"medium",cat:"Study",    freq:"weekly"},
+  {id:18,name:"Grocery run and restock",         icon:"🛒",energy:"high",  cat:"Self Care",freq:"weekly"},
+  {id:19,name:"Check all grades and feedback",   icon:"📊",energy:"medium",cat:"Admin",    freq:"monthly"},
+  {id:20,name:"Email professor if behind",       icon:"🧑‍🏫",energy:"medium",cat:"Admin",    freq:"monthly"},
+  {id:21,name:"Contact student support",         icon:"🤝",energy:"medium",cat:"Health",   freq:"monthly"},
+  {id:22,name:"Review semester goals",           icon:"🎯",energy:"high",  cat:"Admin",    freq:"monthly"},
+];
+
+const SOS=[
+  {id:"s1",name:"Brain Dump",    icon:"🧠",time:"5 min", color:"#c77dff"},
+  {id:"s2",name:"Clear Desk Now",icon:"🧹",time:"3 min", color:"#00e5c8"},
+  {id:"s3",name:"Read ONE Page", icon:"📖",time:"5 min", color:"#ff6eb4"},
+  {id:"s4",name:"Water + Snack", icon:"🍎",time:"2 min", color:"#ffd166"},
+  {id:"s5",name:"Stretch Break", icon:"🏃",time:"5 min", color:"#74d7c4"},
+  {id:"s6",name:"Start 1 Assignement",icon:"✍️",time:"10 min", color:"#ff9a9a"},
+];
+
+const SCHEDULE_COLORS=["#c77dff","#ff6eb4","#00e5c8","#ffd166","#74d7c4","#ff9a9a","#a8d8ff","#ffc8a0"];
+const TASK_CATS=["Study","Lectures","Admin","Self Care","Social","Health","Other"];
+const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+
+// STATE
+let state={
+  energy:"medium",
+  tasks:TASKS.map(t=>({...t,done:false,lastDone:null})),
+  deletedTaskIds:[],
+  customTasks:[],
+  sosDone:[],
+  schedule:[],
+  projects:[],
+  attendance:[],
+  grades:[],
+};
+let ctaskCat="Study";
+
+function save(){try{localStorage.setItem("adhd_sp2",JSON.stringify(state));}catch(e){}}
+function load(){
+  try{
+    const raw=localStorage.getItem("adhd_sp2");
+    if(!raw)return;
+    const s=JSON.parse(raw);
+    const sm={};(s.tasks||[]).forEach(t=>sm[t.id]=t);
+    state.tasks=TASKS.map(t=>sm[t.id]?{...t,done:sm[t.id].done||false,lastDone:sm[t.id].lastDone||null}:{...t,done:false,lastDone:null});
+    state.energy=s.energy||"medium";
+    state.deletedTaskIds=s.deletedTaskIds||[];
+    state.customTasks=s.customTasks||[];
+    state.sosDone=s.sosDone||[];
+    state.schedule=s.schedule||[];
+    state.projects=s.projects||[];
+    state.attendance=s.attendance||[];
+    state.grades=s.grades||[];
+  }catch(e){}
+}
+
+// TABS
+function switchTab(tab){
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  document.getElementById("panel-"+tab).classList.add("active");
+  document.querySelectorAll(".tab-btn").forEach((b,i)=>{
+    const tabs=["today","schedule","projects","attendance","grades","sos"];
+    b.classList.toggle("active",tabs[i]===tab);
+  });
+  if(tab==="today")renderToday();
+  if(tab==="schedule")renderSchedule();
+  if(tab==="projects")renderProjects();
+  if(tab==="attendance")renderAttendance();
+  if(tab==="grades")renderGrades();
+  if(tab==="sos")renderSOS();
+}
+
+// ENERGY
+function setEnergy(e){
+  state.energy=e;
+  ["low","medium","high"].forEach(n=>document.getElementById("btn"+n.charAt(0).toUpperCase()+n.slice(1)).classList.toggle("active",n===e));
+  document.getElementById("mvdBanner").classList.toggle("show",e==="low");
+  save();renderToday();
+}
+
+// TODAY
+function getFilteredTasks(){
+  const all=[...state.tasks.filter(t=>!state.deletedTaskIds.includes(t.id)),...state.customTasks.map(t=>({...t,custom:true}))];
+  return all.filter(t=>{
+    if(state.energy==="low")   return t.energy==="low";
+    if(state.energy==="medium")return t.energy==="low"||t.energy==="medium";
+    return true;
+  });
+}
+function renderToday(){
+  const ft=getFilteredTasks();
+  const done=ft.filter(t=>isDone(t)).length;
+  const pct=ft.length?Math.round(done/ft.length*100):0;
+  document.getElementById("todayProgress").textContent=done+"/"+ft.length;
+  document.getElementById("todayProgFill").style.width=pct+"%";
+
+  if(!ft.length){
+    document.getElementById("taskList").innerHTML='<div class="empty-state"><div class="empty-icon">✨</div><div class="empty-msg">No tasks for this mode</div><div class="empty-sub">Try switching to Focus or Deep Work mode</div></div>';
+    renderCustomTaskList();return;
+  }
+  const sorted=[...ft.filter(t=>!isDone(t)),...ft.filter(t=>isDone(t))];
+  const co={};sorted.forEach((t,i)=>{if(co[t.cat]===undefined)co[t.cat]=i;});
+  let html="";
+  Object.keys(co).sort((a,b)=>co[a]-co[b]).forEach(cat=>{
+    html+='<div class="cat-header">'+cat+'</div>';
+    sorted.filter(t=>t.cat===cat).forEach(t=>{
+      const done=isDone(t),days=daysLeft(t);
+      const right=done?(t.freq==="weekly"||t.freq==="monthly"?'<div class="reset-badge">↻ '+days+'d</div>':'<div class="t-check">✓</div>'):'<div style="font-size:11px;font-weight:900;color:var(--purple);white-space:nowrap">Tap to done</div>';
+      const meta=done&&(t.freq==="weekly"||t.freq==="monthly")?' · <span style="color:var(--teal);font-size:9px">resets in '+days+'d</span>':"";
+      html+='<div class="task-card '+(done?"done":"")+(t.custom?' custom-t':'')+'" id="tc_'+t.id+'" onclick="completeTask(\''+t.id+'\')">'
+        +'<div class="t-icon '+t.energy+'">'+t.icon+'</div>'
+        +'<div class="t-info"><div class="t-name">'+t.name+freqBadge(t.freq)+'</div>'
+        +'<div class="t-meta">'+t.energy+' · '+t.cat+meta+'</div></div>'
+        +right
+       +(!done?'<button class="del-btn" onclick="'+(t.custom?'delCustomTask':'delBuiltinTask')+'(event,\''+t.id+'\')">✕</button>':"")
+        +'</div>';
+    });
+  });
+  document.getElementById("taskList").innerHTML=html;
+  renderCustomTaskList();
+}
+
+function completeTask(id){
+  let t=state.tasks.find(x=>String(x.id)===String(id));
+  if(!t)t=state.customTasks.find(x=>String(x.id)===String(id));
+  if(!t||isDone(t))return;
+  if(t.freq==="weekly"||t.freq==="monthly"){t.lastDone=todayStr();}
+  else{t.done=true;t.lastDone=todayStr();}
+  save();renderToday();
+  const card=document.getElementById("tc_"+id);
+  if(card)card.classList.add("completing");
+  celebrate(t.name);
+}
+
+// CELEBRATION
+const CELEB_HITS=[
+  {emoji:"🔥",msg:"ON FIRE!",sub:"That one's done. Brain go brrr."},
+  {emoji:"💜",msg:"YES! GOT IT!",sub:"Your future self is proud of you."},
+  {emoji:"⚡",msg:"ZAPPED IT!",sub:"One less thing standing in your way."},
+  {emoji:"🎯",msg:"BULLSEYE!",sub:"Aim. Click. Done. You're a sniper."},
+  {emoji:"🚀",msg:"LAUNCHED!",sub:"To the moon and back. Keep going."},
+  {emoji:"💎",msg:"DIAMOND!",sub:"Rare. Shiny. Unstoppable. That's you."},
+  {emoji:"🏆",msg:"CHAMPION!",sub:"Small wins build big brains."},
+  {emoji:"🌟",msg:"SUPERSTAR!",sub:"The streak is real. Don't stop now."},
+  {emoji:"🎮",msg:"LEVEL UP!",sub:"XP gained. You're literally levelling."},
+  {emoji:"🦋",msg:"TRANSFORMED!",sub:"Each task rewires you. Science says so."},
+  {emoji:"🧠",msg:"BIG BRAIN!",sub:"ADHD and done. Unstoppable combo."},
+  {emoji:"✨",msg:"SPARKLING!",sub:"Tiny action. Massive momentum."},
+  {emoji:"🌈",msg:"NAILED IT!",sub:"Look at you, actually doing the thing."},
+  {emoji:"💪",msg:"STRONG!",sub:"Proof you can. Remember this feeling."},
+  {emoji:"🎉",msg:"BOOM!",sub:"That task never stood a chance."},
+];
+const CELEB_COLORS=["#7b5ea8","#c85f76","#4e9985","#d4922a","#a8d8ff","#f4a0b5","#74d7c4","#ffc8a0"];
+let celebTimeout=null;
+
+function celebrate(taskName){
+  const hit=CELEB_HITS[Math.floor(Math.random()*CELEB_HITS.length)];
+  // Flash
+  const flash=document.createElement("div");
+  flash.className="celeb-flash";
+  document.body.appendChild(flash);
+  setTimeout(()=>flash.remove(),700);
+  // Card
+  const overlay=document.getElementById("celebOverlay");
+  const card=document.getElementById("celebCard");
+  const emojiEl=document.getElementById("celebEmoji");
+  const msgEl=document.getElementById("celebMsg");
+  const subEl=document.getElementById("celebSub");
+  const taskEl=document.getElementById("celebTaskName");
+  emojiEl.textContent=hit.emoji;
+  msgEl.textContent=hit.msg;
+  subEl.textContent=hit.sub;
+  taskEl.textContent="✓ "+taskName;
+  // Reset animations
+  emojiEl.className="";msgEl.className="";subEl.className="";taskEl.className="";
+  void emojiEl.offsetWidth;
+  emojiEl.className="celeb-emoji-anim";
+  subEl.className="celeb-sub-anim";
+  taskEl.className="celeb-task-anim";
+  // Show overlay
+  overlay.style.display="block";
+  card.style.transform="translate(-50%,-50%) scale(0.5)";
+  card.style.opacity="0";
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    card.style.transform="translate(-50%,-50%) scale(1)";
+    card.style.opacity="1";
+  }));
+  // Confetti
+  launchConfetti();
+  // Auto-hide
+  if(celebTimeout)clearTimeout(celebTimeout);
+  celebTimeout=setTimeout(()=>{
+    card.style.transform="translate(-50%,-50%) scale(0.85)";
+    card.style.opacity="0";
+    setTimeout(()=>{overlay.style.display="none";},300);
+  },2200);
+}
+
+function launchConfetti(){
+  const canvas=document.getElementById("celebCanvas");
+  const W=canvas.width=window.innerWidth;
+  const H=canvas.height=window.innerHeight;
+  const ctx=canvas.getContext("2d");
+  const particles=[];
+  const count=90;
+  for(let i=0;i<count;i++){
+    const color=CELEB_COLORS[Math.floor(Math.random()*CELEB_COLORS.length)];
+    particles.push({
+      x:Math.random()*W, y:-10-Math.random()*100,
+      vx:(Math.random()-0.5)*5, vy:3+Math.random()*4,
+      size:5+Math.random()*7,
+      rotation:Math.random()*360, rotSpeed:(Math.random()-0.5)*8,
+      color, shape:Math.random()>0.4?"rect":"circle",
+      alpha:1, gravity:0.18
+    });
+  }
+  let frame=0;
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    let alive=false;
+    particles.forEach(p=>{
+      if(p.alpha<=0)return;
+      p.x+=p.vx; p.y+=p.vy; p.vy+=p.gravity;
+      p.rotation+=p.rotSpeed;
+      if(p.y>H*0.85)p.alpha-=0.045;
+      if(p.alpha<0)p.alpha=0;
+      else alive=true;
+      ctx.save();
+      ctx.globalAlpha=p.alpha;
+      ctx.translate(p.x,p.y);
+      ctx.rotate(p.rotation*Math.PI/180);
+      ctx.fillStyle=p.color;
+      if(p.shape==="circle"){ctx.beginPath();ctx.arc(0,0,p.size/2,0,Math.PI*2);ctx.fill();}
+      else{ctx.fillRect(-p.size/2,-p.size/3,p.size,p.size*0.55);}
+      ctx.restore();
+    });
+    if(alive&&frame<120){frame++;requestAnimationFrame(draw);}
+    else ctx.clearRect(0,0,W,H);
+  }
+  draw();
+}
+
+function newDay(){
+  if(!confirm("Start a new day?\n\n✅ Daily tasks reset\n🔄 Weekly/monthly keep their schedule\n📋 Projects, grades, attendance stay as-is"))return;
+  state.deletedTaskIds=[];
+  state.tasks=state.tasks.map(t=>({...t,done:(t.freq==="daily"||!t.freq)?false:t.done}));
+  state.customTasks=state.customTasks.map(t=>({...t,done:(t.freq==="daily"||!t.freq)?false:t.done}));
+  state.sosDone=[];
+  save();renderToday();renderSOS();showToast("🌙 New day started!");
+}
+
+// CUSTOM TASKS
+const CTASK_CATS=["Study","Lectures","Admin","Self Care","Social","Health","Other"];
+function initCtaskCats(){
+  document.getElementById("ctaskCatRow").innerHTML=CTASK_CATS.map(c=>'<button class="chip'+(c===ctaskCat?" sel":"")+'" onclick="setCtaskCat(\''+c+'\')" >'+c+'</button>').join("");
+}
+function setCtaskCat(c){ctaskCat=c;initCtaskCats();document.getElementById("ctaskCatCustom").value="";}
+function onCtaskCat(v){if(v.trim()){ctaskCat=v.trim();document.querySelectorAll("#ctaskCatRow .chip").forEach(b=>b.classList.remove("sel"));}}
+function validateCTask(){document.getElementById("ctaskAddBtn").disabled=document.getElementById("ctaskName").value.trim().length<2;}
+function toggleCustomBuilder(){const d=document.getElementById("customBuilder");d.style.display=d.style.display==="none"?"block":"none";}
+function addCustomTask(){
+  const name=document.getElementById("ctaskName").value.trim();if(name.length<2)return;
+  const energy=document.getElementById("ctaskEnergy").value;
+  const freq=document.getElementById("ctaskFreq").value;
+  const catRaw=document.getElementById("ctaskCatCustom").value.trim();
+  const cat=catRaw||ctaskCat;
+  state.customTasks.unshift({id:"c_"+Date.now(),name,icon:"📌",energy,cat,freq,done:false,lastDone:null,custom:true});
+  save();document.getElementById("ctaskName").value="";document.getElementById("ctaskAddBtn").disabled=true;
+  document.getElementById("customBuilder").style.display="none";renderToday();showToast("✅ Task added!");
+}
+function renderCustomTaskList(){
+  // custom tasks shown inline in the main task list already
+}
+function delBuiltinTask(e,id){
+  e.stopPropagation();
+  state.deletedTaskIds.push(Number(id));
+  save();renderToday();showToast("🗑️ Task hidden. Tap New Day to restore all.");
+}
+function delCustomTask(e,id){
+  e.stopPropagation();
+  state.customTasks=state.customTasks.filter(t=>String(t.id)!==String(id));
+  save();renderToday();showToast("🗑️ Removed.");
+}
+
+// SCHEDULE
+const SC_COLORS=["#c77dff","#ff6eb4","#00e5c8","#ffd166","#74d7c4","#ff9a9a","#a8d8ff","#ffc8a0"];
+let scColor=SC_COLORS[0];
+function initScColors(){
+  document.getElementById("scColorRow").innerHTML=SC_COLORS.map(c=>'<button class="chip'+(c===scColor?" sel":"")+'" style="background:'+c+'20;border-color:'+c+'50;color:'+c+'" onclick="setScColor(\''+c+'\')">⬤</button>').join("");
+}
+function setScColor(c){scColor=c;initScColors();}
+function addScheduleClass(){
+  const name=document.getElementById("scName").value.trim();
+  const day=document.getElementById("scDay").value;
+  const time=document.getElementById("scTime").value;
+  const loc=document.getElementById("scLoc").value.trim();
+  if(!name||!time){showToast("⚠️ Please fill class name and time.");return;}
+  state.schedule.push({id:"sc_"+Date.now(),name,day,time,loc,color:scColor});
+  save();renderSchedule();
+  document.getElementById("scName").value="";document.getElementById("scTime").value="";document.getElementById("scLoc").value="";
+  showToast("🗓️ Class added!");
+}
+function renderSchedule(){
+  const days=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  const view=document.getElementById("scheduleView");
+  if(!state.schedule.length){view.innerHTML='<div class="empty-state"><div class="empty-icon">🗓️</div><div class="empty-msg">No classes yet</div><div class="empty-sub">Add your first class above</div></div>';return;}
+  let html="";
+  days.forEach(day=>{
+    const classes=state.schedule.filter(c=>c.day===day).sort((a,b)=>a.time.localeCompare(b.time));
+    if(!classes.length)return;
+    html+='<div class="sched-day"><div class="sched-day-header" onclick="toggleDay(\''+day+'\')"><span class="sched-day-name">'+day+'</span><span class="sched-day-count">'+classes.length+' class'+(classes.length>1?"es":"")+'</span></div>'
+      +'<div id="day_'+day+'">';
+    classes.forEach(c=>{
+      html+='<div class="sched-class"><div class="sched-color-dot" style="background:'+c.color+'"></div>'
+        +'<div class="sched-time">'+c.time+'</div>'
+        +'<div class="sched-info"><div class="sched-name">'+c.name+'</div>'+(c.loc?'<div class="sched-loc">📍 '+c.loc+'</div>':"")+'</div>'
+        +'<button class="del-btn" style="opacity:1" onclick="delScheduleClass(\''+c.id+'\')">✕</button>'
+        +'</div>';
+    });
+    html+='</div></div>';
+  });
+  view.innerHTML=html;
+}
+function toggleDay(day){const d=document.getElementById("day_"+day);if(d)d.style.display=d.style.display==="none"?"block":"none";}
+function delScheduleClass(id){state.schedule=state.schedule.filter(c=>c.id!==id);save();renderSchedule();showToast("🗑️ Class removed.");}
+
+// PROJECTS
+function addProject(){
+  const name=document.getElementById("prjName").value.trim();
+  const subject=document.getElementById("prjSubject").value.trim();
+  const due=document.getElementById("prjDue").value;
+  const priority=document.getElementById("prjPriority").value;
+  const progress=Math.min(100,Math.max(0,parseInt(document.getElementById("prjProgress").value)||0));
+  if(!name||!subject){showToast("⚠️ Please fill title and subject.");return;}
+  state.projects.push({id:"p_"+Date.now(),name,subject,due,priority,progress,status:"not_started"});
+  save();renderProjects();
+  document.getElementById("prjName").value="";document.getElementById("prjSubject").value="";document.getElementById("prjDue").value="";document.getElementById("prjProgress").value="0";
+  showToast("📋 Project added!");
+}
+function setProjStatus(id,status){
+  const p=state.projects.find(x=>x.id===id);if(!p)return;
+  p.status=status;if(status==="done")p.progress=100;
+  save();renderProjects();
+}
+function setProjProgress(id,val){
+  const p=state.projects.find(x=>x.id===id);if(!p)return;
+  p.progress=Math.min(100,Math.max(0,parseInt(val)||0));
+  save();renderProjects();
+}
+function delProject(id){state.projects=state.projects.filter(p=>p.id!==id);save();renderProjects();showToast("🗑️ Removed.");}
+function getDueLabel(due,status){
+  if(status==="done")return {label:"Done ✓",cls:"due-done"};
+  if(!due)return {label:"No deadline",cls:"due-ok"};
+  const today=new Date();today.setHours(0,0,0,0);
+  const d=new Date(due);d.setHours(0,0,0,0);
+  const diff=Math.round((d-today)/86400000);
+  if(diff<0)return {label:"Overdue "+Math.abs(diff)+"d",cls:"due-overdue"};
+  if(diff===0)return {label:"Due TODAY",cls:"due-today"};
+  if(diff<=3)return {label:"Due in "+diff+"d",cls:"due-soon"};
+  return {label:"Due in "+diff+"d",cls:"due-ok"};
+}
+function renderProjects(){
+  const active=state.projects.filter(p=>p.status!=="done");
+  const done=state.projects.filter(p=>p.status==="done");
+  const sorted=[...active.sort((a,b)=>{if(!a.due)return 1;if(!b.due)return -1;return new Date(a.due)-new Date(b.due);}),...done];
+  const stats=document.getElementById("projectStats");
+  stats.innerHTML=[{n:state.projects.length,l:"Total",c:"var(--purple)"},{n:active.length,l:"Active",c:"var(--yellow)"},{n:done.length,l:"Done",c:"var(--teal)"}]
+    .map(s=>'<div class="card-sm" style="text-align:center;margin:0"><div style="font-family:\'Fredoka One\',cursive;font-size:26px;color:'+s.c+'">'+s.n+'</div><div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px">'+s.l+'</div></div>').join("");
+  const list=document.getElementById("projectList");
+  if(!sorted.length){list.innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-msg">No projects yet</div><div class="empty-sub">Add your first assignment above</div></div>';return;}
+  list.innerHTML=sorted.map(p=>{
+    const {label,cls}=getDueLabel(p.due,p.status);
+    const isDoneP=p.status==="done";
+    return '<div class="proj-card prio-'+p.priority+'" style="display:flex;gap:10px">'
+      +'<div class="prio-bar"></div>'
+      +'<div style="flex:1">'
+      +'<div class="proj-top"><div><div class="proj-name">'+p.name+'</div><div class="proj-subject">'+p.subject+'</div></div>'
+      +'<div style="display:flex;align-items:center;gap:6px"><span class="proj-due '+cls+'">'+label+'</span>'
+      +'<button class="del-btn" style="opacity:1" onclick="delProject(\''+p.id+'\')">✕</button></div></div>'
+      +'<div class="proj-progress-wrap"><div class="proj-progress-label"><span>Progress</span><span>'+p.progress+'%</span></div>'
+      +'<div class="proj-progress-track"><div class="proj-progress-fill" style="width:'+p.progress+'%"></div></div></div>'
+      +(isDoneP?"":'<input type="range" min="0" max="100" value="'+p.progress+'" style="width:100%;accent-color:var(--purple);margin-bottom:8px" oninput="setProjProgress(\''+p.id+'\',this.value)">')
+      +'<div class="status-row">'
+      +'<button class="status-btn'+(p.status==="not_started"?" active":"")+'" onclick="setProjStatus(\''+p.id+'\',\'not_started\')">Not started</button>'
+      +'<button class="status-btn'+(p.status==="in_progress"?" active":"")+'" onclick="setProjStatus(\''+p.id+'\',\'in_progress\')">In progress</button>'
+      +'<button class="status-btn done-btn'+(p.status==="done"?" done-active":"")+'" onclick="setProjStatus(\''+p.id+'\',\'done\')">Done ✓</button>'
+      +'</div></div></div>';
+  }).join("");
+}
+
+// ATTENDANCE
+function addAttModule(){
+  const name=document.getElementById("attName").value.trim();
+  const min=parseInt(document.getElementById("attMin").value)||80;
+  if(!name){showToast("⚠️ Please enter a module name.");return;}
+  state.attendance.push({id:"at_"+Date.now(),name,min,records:[]});
+  save();renderAttendance();document.getElementById("attName").value="";showToast("📍 Module added!");
+}
+function recordAttendance(id,type){
+  const m=state.attendance.find(x=>x.id===id);if(!m)return;
+  m.records.push({date:todayStr(),type});
+  save();renderAttendance();showToast(type==="present"?"✅ Marked present":type==="absent"?"❌ Marked absent":"⏰ Marked late");
+}
+function delAttModule(id){state.attendance=state.attendance.filter(m=>m.id!==id);save();renderAttendance();}
+function renderAttendance(){
+  let tp=0,ta=0,tl=0;
+  state.attendance.forEach(m=>{m.records.forEach(r=>{if(r.type==="present")tp++;else if(r.type==="absent")ta++;else tl++;});});
+  document.getElementById("attTotalPresent").textContent=tp;
+  document.getElementById("attTotalAbsent").textContent=ta;
+  document.getElementById("attTotalLate").textContent=tl;
+  const list=document.getElementById("attList");
+  if(!state.attendance.length){list.innerHTML='<div class="empty-state"><div class="empty-icon">📍</div><div class="empty-msg">No modules tracked yet</div><div class="empty-sub">Add a module above to start tracking</div></div>';return;}
+  list.innerHTML=state.attendance.map(m=>{
+    const p=m.records.filter(r=>r.type==="present").length;
+    const a=m.records.filter(r=>r.type==="absent").length;
+    const l=m.records.filter(r=>r.type==="late").length;
+    const total=m.records.length;
+    const pct=total?Math.round(((p+l*0.5)/total)*100):100;
+    const color=pct>=m.min?"var(--teal)":pct>=m.min-10?"var(--yellow)":"var(--pink)";
+    const warn=pct<m.min?'<div class="att-warning">⚠️ Below '+m.min+'% minimum ('+pct+'%)</div>':"";
+    return '<div class="att-module">'
+      +'<div class="att-module-top"><div style="flex:1"><div class="att-module-name">'+m.name+'</div>'
+      +'<div style="font-size:10px;font-weight:700;color:var(--muted)">'+p+' present · '+a+' absent · '+l+' late · '+total+' total</div></div>'
+      +'<div style="display:flex;align-items:center;gap:8px"><div class="att-pct" style="color:'+color+'">'+pct+'%</div>'
+      +'<button class="del-btn" style="opacity:1" onclick="delAttModule(\''+m.id+'\')">✕</button></div></div>'
+      +'<div class="att-track"><div class="att-fill" style="width:'+pct+'%;background:'+color+'"></div></div>'
+      +warn
+      +'<div class="att-buttons">'
+      +'<button class="att-btn p" onclick="recordAttendance(\''+m.id+'\',\'present\')">✅ Present</button>'
+      +'<button class="att-btn a" onclick="recordAttendance(\''+m.id+'\',\'absent\')">❌ Absent</button>'
+      +'<button class="att-btn l" onclick="recordAttendance(\''+m.id+'\',\'late\')">⏰ Late</button>'
+      +'</div></div>';
+  }).join("");
+}
+
+// GRADES
+function getLetterGrade(pct){if(pct>=70)return "A";if(pct>=60)return "B";if(pct>=50)return "C";return "F";}
+function getGPAPoint(pct){if(pct>=70)return 4.0;if(pct>=65)return 3.7;if(pct>=60)return 3.3;if(pct>=55)return 3.0;if(pct>=50)return 2.7;if(pct>=45)return 2.3;if(pct>=40)return 2.0;return 0;}
+function addGrade(){
+  const name=document.getElementById("grName").value.trim();
+  const score=parseFloat(document.getElementById("grScore").value);
+  const credits=parseInt(document.getElementById("grCredits").value)||3;
+  const semester=document.getElementById("grSemester").value.trim()||"";
+  if(!name||isNaN(score)){showToast("⚠️ Please fill module name and score.");return;}
+  state.grades.push({id:"gr_"+Date.now(),name,score:Math.min(100,Math.max(0,score)),credits,semester});
+  save();renderGrades();
+  document.getElementById("grName").value="";document.getElementById("grScore").value="";
+  showToast("📊 Grade added!");
+}
+function delGrade(id){state.grades=state.grades.filter(g=>g.id!==id);save();renderGrades();}
+function renderGrades(){
+  const list=document.getElementById("gradeList");
+  const gpaEl=document.getElementById("gpaDisplay");
+  const gpaSub=document.getElementById("gpaSub");
+  if(!state.grades.length){
+    gpaEl.textContent="—";gpaSub.textContent="Add grades below to calculate";
+    list.innerHTML='<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-msg">No grades yet</div><div class="empty-sub">Add your first module grade above</div></div>';
+    return;
+  }
+  // GPA calc
+  let totalWeighted=0,totalCredits=0;
+  state.grades.forEach(g=>{totalWeighted+=getGPAPoint(g.score)*g.credits;totalCredits+=g.credits;});
+  const gpa=totalCredits?totalWeighted/totalCredits:0;
+  gpaEl.textContent=gpa.toFixed(2);
+  const avg=state.grades.reduce((a,g)=>a+g.score,0)/state.grades.length;
+  gpaSub.textContent=state.grades.length+" module"+(state.grades.length>1?"s":"")+` · avg ${avg.toFixed(1)}% · ${totalCredits} credits`;
+  // Sort by score desc
+  const sorted=[...state.grades].sort((a,b)=>b.score-a.score);
+  list.innerHTML=sorted.map(g=>{
+    const letter=getLetterGrade(g.score);
+    return '<div class="grade-card">'
+      +'<div class="grade-badge grade-'+letter+'">'+letter+'</div>'
+      +'<div class="grade-info"><div class="grade-module">'+g.name+(g.semester?' <span style="font-size:10px;color:var(--muted)">'+g.semester+'</span>':"")+'</div>'
+      +'<div class="grade-pct">'+g.score+'% · '+g.credits+' credit'+(g.credits>1?"s":"")+'</div></div>'
+      +'<button class="del-btn" style="opacity:1" onclick="delGrade(\''+g.id+'\')">✕</button>'
+      +'</div>';
+  }).join("");
+}
+
+// SOS
+function renderSOS(){
+  document.getElementById("emGrid").innerHTML=SOS.map(r=>{
+    const done=state.sosDone.includes(r.id);
+    return '<button class="em-card'+(done?" done":"")+'" style="background:'+r.color+'18;border:2px solid '+(done?r.color+'50':r.color+'35')+';color:'+r.color+';" onclick="tapSOS(\''+r.id+'\')">'
+      +'<span class="em-icon">'+r.icon+'</span><span class="em-name">'+r.name+'</span>'
+      +'<span class="em-time">⏱️ '+r.time+'</span>'
+      +'<span style="font-size:11px;font-weight:900;margin-top:4px">'+(done?"✓ Done!":"Tap to do this")+'</span>'
+      +'</button>';
+  }).join("");
+}
+function pickRandomSOS(){
+  const available=SOS.filter(r=>!state.sosDone.includes(r.id));
+  if(!available.length){showToast("🎉 All SOS actions done! Tap Reset.");return;}
+  const pick=available[Math.floor(Math.random()*available.length)];
+  document.getElementById("randomPickResult").style.display="block";
+  document.getElementById("randomPickIcon").textContent=pick.icon;
+  document.getElementById("randomPickName").textContent=pick.name;
+  document.getElementById("randomPickTime").textContent="⏱️ "+pick.time;
+  document.getElementById("pickForMeBtn").textContent="🎲 Pick another";
+  // Auto-mark it done after 8 seconds
+  setTimeout(()=>{
+    if(!state.sosDone.includes(pick.id)){
+      state.sosDone.push(pick.id);save();renderSOS();
+    }
+  },8000);
+}
+function tapSOS(id){
+  if(state.sosDone.includes(id))return;
+  state.sosDone.push(id);save();renderSOS();showToast("✅ One action done. That counts.");
+}
+function resetSOS(){state.sosDone=[];save();renderSOS();showToast("🔄 SOS reset.");}
+
+// TOAST
+let toastT=null;
+function showToast(msg){
+  const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");
+  if(toastT)clearTimeout(toastT);
+  toastT=setTimeout(()=>t.classList.remove("show"),2500);
+}
+
+// INSTALL
+(function(){
+  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone=window.navigator.standalone;
+  if(isIOS&&!isStandalone&&!localStorage.getItem("sp_banner")){
+    setTimeout(()=>{const b=document.getElementById("installBanner");if(b)b.style.display="block";},3000);
+  }
+  window.dismissBanner=function(){const b=document.getElementById("installBanner");if(b)b.style.display="none";localStorage.setItem("sp_banner","1");};
+})();
+
+// INIT
+load();
+setEnergy(state.energy);
+renderToday();renderSOS();
+pickTodayAffirmation();
+initCtaskCats();
+initScColors();
+
+</script>
+</body>
+</html>

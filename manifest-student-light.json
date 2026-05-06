@@ -1,0 +1,14 @@
+{
+  "name": "ADHD Student Planner",
+  "short_name": "Student Planner",
+  "description": "A dopamine-friendly student planner for ADHD brains — schedule, projects, attendance, grades",
+  "start_url": "./student-light.html",
+  "display": "standalone",
+  "background_color": "#fdf7f2",
+  "theme_color": "#fdf7f2",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon-student-light.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-student-light.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
