@@ -1,4 +1,4 @@
-const CACHE = 'adhd-dark-v2';
+const CACHE = 'adhd-dark-v3';
 const ASSETS = [
   './adhd-home-manager-dark.html',
   'https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap',

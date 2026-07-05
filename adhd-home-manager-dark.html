@@ -952,43 +952,53 @@ function showCelebration(xp,msg,sub,isLevelUp){
 // dozens of animated DOM nodes. This is what keeps it smooth on mobile — the old
 // approach spawned 18–50 <div>s per burst, forcing a heavy style/layout/layer
 // pass on one frame and compositing that many layers on a weak GPU.
+// Confetti: same motion as the original CSS burst (fall 110vh, spin 1080°, fade
+// out, staggered start) — but drawn on ONE <canvas> instead of 18–50 animated
+// <div>s. That single composited layer is what keeps it smooth on mobile.
+// Timing is wall-clock based so it runs at the right speed on 120Hz phones too.
 let confRAF=null;
-function runConfetti(count,colors,minSize,sizeRange){
+function runConfetti(count,colors,o){
   const wrap=document.getElementById("confettiWrap");
   wrap.innerHTML="";wrap.classList.remove("hidden");
   if(confRAF){cancelAnimationFrame(confRAF);confRAF=null;}
-  // Respect reduced-motion: no falling particles for users who opt out.
-  if(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  if(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches)return; // opt-out
   const cvs=document.createElement("canvas");
   cvs.style.cssText="position:absolute;inset:0;width:100%;height:100%;";
   wrap.appendChild(cvs);
   const ctx=cvs.getContext("2d");
-  const dpr=Math.min(window.devicePixelRatio||1,2); // cap DPR so retina phones don't render a 3x canvas
+  const dpr=Math.min(window.devicePixelRatio||1,2); // cap DPR so retina phones don't render a huge canvas
   const W=wrap.clientWidth||window.innerWidth,H=wrap.clientHeight||window.innerHeight;
   cvs.width=W*dpr;cvs.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
-  const n=Math.round(count*(W<600?0.7:1)); // thin out particles on small screens
+  const travel=H*1.1+40, SPIN=Math.PI*6; // 110vh fall, 1080° rotation — matches the old keyframe
   const parts=[];
-  for(let i=0;i<n;i++){
+  for(let i=0;i<count;i++){                 // full count, no mobile thinning — canvas handles it easily
     parts.push({
-      x:Math.random()*W, y:-20-Math.random()*H*0.25,
-      s:minSize+Math.random()*sizeRange,
-      vx:(Math.random()-0.5)*1.4, vy:1.4+Math.random()*2.6,
-      rot:Math.random()*Math.PI*2, vr:(Math.random()-0.5)*0.32,
+      x:Math.random()*W,
+      s:o.minSize+Math.random()*o.sizeRange,
       color:colors[Math.floor(Math.random()*colors.length)],
-      round:Math.random()>0.5, life:0, max:130+Math.random()*90
+      round:Math.random()>0.5,
+      delay:Math.random()*o.delayMax*1000,               // ms before this piece starts
+      dur:(o.durMin+Math.random()*o.durRange)*1000       // ms to complete its fall
     });
   }
-  function frame(){
-    if(!cvs.isConnected){confRAF=null;return;} // bail if teardown removed the canvas
+  let start=null;
+  function frame(ts){
+    if(!cvs.isConnected){confRAF=null;return;}           // bail if teardown removed the canvas
+    if(start===null)start=ts;
+    const el=ts-start;
     ctx.clearRect(0,0,W,H);
     let alive=false;
     for(const p of parts){
-      if(p.life>p.max)continue;
-      p.life++;alive=true;
-      p.vy+=0.02;p.x+=p.vx;p.y+=p.vy;p.rot+=p.vr;
+      const t=el-p.delay;
+      if(t<0){alive=true;continue;}                      // not started yet
+      const prog=t/p.dur;
+      if(prog>=1)continue;                               // finished
+      alive=true;
       ctx.save();
-      ctx.globalAlpha=p.life>p.max-30?Math.max(0,(p.max-p.life)/30):1;
-      ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.fillStyle=p.color;
+      ctx.globalAlpha=1-prog;                            // linear fade over the fall, like the original
+      ctx.translate(p.x,-20+prog*travel);
+      ctx.rotate(prog*SPIN);
+      ctx.fillStyle=p.color;
       if(p.round){ctx.beginPath();ctx.arc(0,0,p.s/2,0,Math.PI*2);ctx.fill();}
       else{ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s);}
       ctx.restore();
@@ -998,10 +1008,10 @@ function runConfetti(count,colors,minSize,sizeRange){
   confRAF=requestAnimationFrame(frame);
 }
 function spawnConfetti(count){
-  runConfetti(count,["#ff6eb4","#00e5c8","#ffd166","#c77dff","#ff9a9a","#74d7c4"],6,8);
+  runConfetti(count,["#ff6eb4","#00e5c8","#ffd166","#c77dff","#ff9a9a","#74d7c4"],{minSize:6,sizeRange:8,durMin:1.5,durRange:2.0,delayMax:0.4});
 }
 function spawnLegendConfetti(){
-  runConfetti(50,["#ffd700","#ffb800","#fff0a0","#ffd166","#ff6eb4","#c77dff","#ffffff"],5,12);
+  runConfetti(50,["#ffd700","#ffb800","#fff0a0","#ffd166","#ff6eb4","#c77dff","#ffffff"],{minSize:5,sizeRange:12,durMin:2.0,durRange:2.5,delayMax:0.6});
 }
 let toastTimeout=null;
 function showToast(msg){
